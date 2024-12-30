@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pressure Drop Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        label {
+            font-weight: bold;
+            margin: 10px 0 5px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0 20px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Pressure Drop Calculator</h1>
+
+    <div class="container">
+        <label for="fpm">Enter FPM:</label>
+        <input type="number" id="fpm" placeholder="Enter FPM value" required>
+
+        <label for="length">Enter Duct Length (in mm):</label>
+        <input type="number" id="length" placeholder="Enter duct length in mm" required>
+
+        <label for="width">Enter Duct Width (in mm):</label>
+        <input type="number" id="width" placeholder="Enter duct width in mm" required>
+
+        <button onclick="calculatePressure()">Calculate Pressure Drop</button>
+
+        <div id="result" class="result"></div>
+    </div>
+
+    <script>
+        const referenceArea = 610 * 610; // Reference area in mm² (600mm x 600mm)
+        const referenceData = [
+            { fpm: 500, pressure: 2 },
+            { fpm: 1000, pressure: 3 },
+            { fpm: 1500, pressure: 6 },
+            { fpm: 2000, pressure: 11 },
+            { fpm: 2500, pressure: 15 },
+            { fpm: 3000, pressure: 20 },
+            { fpm: 3500, pressure: 28 },
+            { fpm: 4000, pressure: 39 }
+        ];
+
+        function calculatePressure() {
+            const fpm = parseFloat(document.getElementById('fpm').value);
+            const length = parseFloat(document.getElementById('length').value);
+            const width = parseFloat(document.getElementById('width').value);
+
+            let resultText = "Please enter valid FPM, length, and width values.";
+
+            if (fpm && length && width) {
+                if (fpm < 500 || fpm > 4000) {
+                    resultText = "FPM should be between 500 and 4000.";
+                } else if (length <= 0 || width <= 0) {
+                    resultText = "Length and width must be positive numbers.";
+                } else {
+                    const newArea = length * width; // Calculate the new area
+                    let interpolatedPressure = null;
+
+                    // Find the pressure drop using interpolation
+                    for (let i = 0; i < referenceData.length - 1; i++) {
+                        const lower = referenceData[i];
+                        const upper = referenceData[i + 1];
+
+                        if (fpm >= lower.fpm && fpm <= upper.fpm) {
+                            const K = lower.pressure / Math.pow(lower.fpm, 2); // Calculate proportionality constant
+                            interpolatedPressure = K * Math.pow(fpm, 2); // Calculate pressure using P = K * V^2
+                            break;
+                        }
+                    }
+
+                    if (interpolatedPressure !== null) {
+                        // Adjust pressure for the new area using P_new = P_current * (A_current / A_new)
+                        const adjustedPressure = interpolatedPressure * (referenceArea / newArea);
+
+                        // Convert to mm H2O and inches H2O
+                        const pressureMmH2O = adjustedPressure * 0.101972; // 1 Pa = 0.101972 mm H2O
+                        const pressureInH2O = adjustedPressure * 0.00401463; // 1 Pa = 0.00401463 inch H2O
+
+                        resultText = `
+                            <p><strong>Results:</strong></p>
+                            <p>Pressure Drop: ${adjustedPressure.toFixed(2)} Pa</p>
+                            <p>Pressure Drop: ${pressureMmH2O.toFixed(2)} mm H₂O</p>
+                            <p>Pressure Drop: ${pressureInH2O.toFixed(2)} inches H₂O</p>
+                        `;
+                    } else {
+                        resultText = "Unable to calculate pressure for the given FPM.";
+                    }
+                }
+            }
+
+            document.getElementById('result').innerHTML = resultText;
+        }
+    </script>
+
+</body>
+</html>
